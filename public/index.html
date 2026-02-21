@@ -1,10 +1,572 @@
-<html>
+
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>Atec Screener</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>ATEC Screener — Autism Treatment Evaluation Checklist</title>
+  <meta name="description" content="Free online ATEC (Autism Treatment Evaluation Checklist) screener. 77-item caregiver questionnaire with instant scoring across 4 developmental domains." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root {
+      height: 100%;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #F5F7FB;
+      color: #1A2340;
+    }
+    body { overflow: hidden; }
+    input:focus, button:focus { outline: none; }
+    button { font-family: inherit; }
+
+    /* App shell */
+    .app-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100dvh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 0 40px rgba(26,35,64,0.08);
+      overflow: hidden;
+    }
+
+    /* Scrollable area */
+    .scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: #D0D5E0 transparent;
+    }
+    .scroll-area::-webkit-scrollbar { width: 4px; }
+    .scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .scroll-area::-webkit-scrollbar-thumb { background: #D0D5E0; border-radius: 4px; }
+
+    /* Bottom bar */
+    .bottom-bar {
+      padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+      background: #fff;
+      border-top: 1px solid #EDF0F5;
+      flex-shrink: 0;
+    }
+
+    /* Primary button */
+    .btn-primary {
+      width: 100%;
+      padding: 16px 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #4A7CDB 0%, #3B5FBF 100%);
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.4; cursor: default; }
+    .btn-primary:disabled:active { transform: none; }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+    .fade-up-d1 { animation-delay: 0.06s; }
+    .fade-up-d2 { animation-delay: 0.12s; }
+    .fade-up-d3 { animation-delay: 0.18s; }
+    .fade-up-d4 { animation-delay: 0.24s; }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .scale-in { animation: scaleIn 0.5s ease-out both; }
+
+    @keyframes fillBar {
+      from { width: 0; }
+    }
+
+    /* Print styles */
+    @media print {
+      .bottom-bar { display: none; }
+      .app-shell { box-shadow: none; max-width: 100%; height: auto; }
+      .scroll-area { overflow: visible; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Welcome to Atec Screener</h1>
-    <p>Your data is displayed here.</p>
-    <script src="app.js"></script>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ─── ATEC DATA ─────────────────────────────────────────────────────
+    const SECTIONS = [
+      {
+        id: "speech", title: "Speech / Language / Communication", subtitle: "14 items", icon: "💬",
+        instruction: "Rate how true each statement is for your child.",
+        options: [
+          { label: "Not True", value: 2 },
+          { label: "Somewhat True", value: 1 },
+          { label: "Very True", value: 0 },
+        ],
+        maxScore: 28,
+        items: [
+          "Knows own name", "Responds to 'No' or 'Stop'", "Can follow some commands",
+          "Can use one word at a time (No!, Eat, Water, etc.)", "Can use 2 words at a time (Don't want, Go home)",
+          "Can use 3 words at a time (Want more milk)", "Knows 10 or more words",
+          "Can use sentences with 4 or more words", "Explains what he/she wants",
+          "Asks meaningful questions", "Speech tends to be meaningful/relevant",
+          "Often uses several successive sentences", "Carries on fairly good conversation",
+          "Has normal ability to communicate for his/her age",
+        ],
+      },
+      {
+        id: "sociability", title: "Sociability", subtitle: "20 items", icon: "🤝",
+        instruction: "Rate how descriptive each statement is of your child.",
+        options: [
+          { label: "Not Descriptive", value: 0 },
+          { label: "Somewhat", value: 1 },
+          { label: "Very Descriptive", value: 2 },
+        ],
+        maxScore: 40,
+        items: [
+          "Seems to be in a shell — you cannot reach him/her", "Ignores other people",
+          "Pays little or no attention when addressed", "Uncooperative and resistant",
+          "No eye contact", "Prefers to be left alone", "Shows no affection",
+          "Fails to greet parents", "Avoids contact with others", "Does not imitate",
+          "Dislikes being held/cuddled", "Does not share or show", "Does not wave 'bye bye'",
+          "Disagreeable/not compliant", "Temper tantrums", "Lacks friends/companions",
+          "Rarely smiles", "Insensitive to other's feelings", "Indifferent to being liked",
+          "Indifferent if parent(s) leave",
+        ],
+      },
+      {
+        id: "sensory", title: "Sensory / Cognitive Awareness", subtitle: "18 items", icon: "🧠",
+        instruction: "Rate how descriptive each statement is of your child.",
+        options: [
+          { label: "Not Descriptive", value: 2 },
+          { label: "Somewhat", value: 1 },
+          { label: "Very Descriptive", value: 0 },
+        ],
+        maxScore: 36,
+        items: [
+          "Responds to own name", "Responds to praise", "Looks at people and animals",
+          "Looks at pictures (and TV)", "Does drawing, coloring, art", "Plays with toys appropriately",
+          "Appropriate facial expression", "Understands stories on TV", "Understands explanations",
+          "Aware of environment", "Aware of danger", "Shows imagination", "Initiates activities",
+          "Dresses self", "Curious, interested", "Venturesome — explores",
+          '"Tuned in" — Not spacey', "Looks where others are looking",
+        ],
+      },
+      {
+        id: "health", title: "Health / Physical / Behavior", subtitle: "25 items", icon: "🩺",
+        instruction: "Rate the severity of each issue for your child.",
+        options: [
+          { label: "Not a Problem", value: 0 },
+          { label: "Minor", value: 1 },
+          { label: "Moderate", value: 2 },
+          { label: "Serious", value: 3 },
+        ],
+        maxScore: 75,
+        items: [
+          "Bed-wetting", "Wets pants/diapers", "Soils pants/diapers", "Diarrhea",
+          "Constipation", "Sleep problems", "Eats too much/too little", "Extremely limited diet",
+          "Hyperactive", "Lethargic", "Hits or injures self", "Hits or injures others",
+          "Destructive", "Sound-sensitive", "Anxious/fearful", "Unhappy/crying",
+          "Seizures", "Obsessive speech", "Rigid routines", "Shouts or screams",
+          "Demands sameness", "Often agitated", "Not sensitive to pain",
+          '"Hooked" or fixated on certain objects/topics',
+          "Repetitive movements (stimming, rocking, etc.)",
+        ],
+      },
+    ];
+
+    function getInterpretation(total) {
+      if (total <= 15) return { level: "Minimal", color: "#2D9F6F", bg: "#E8F8F0",
+        text: "Score is within the range typically associated with minimal or no autism-related concerns. The child's behaviors and abilities appear largely consistent with typical developmental patterns." };
+      if (total <= 30) return { level: "Mild", color: "#5BA85B", bg: "#EFF8EF",
+        text: "Score suggests relatively mild concerns. The child may show some atypical behaviors but generally possesses functional communication and social skills. Research indicates children scoring below 30 at age five have a high chance of leading a normal and independent life." };
+      if (total <= 50) return { level: "Moderate", color: "#D4A017", bg: "#FFF8E1",
+        text: "Score suggests moderate autism-related concerns. The child may face challenges in communication, sociability, or behavior that could benefit from intervention. Research suggests children in this range will most likely be able to lead a semi-independent life." };
+      if (total <= 103) return { level: "Significant", color: "#E07C3E", bg: "#FFF3EB",
+        text: "Score indicates significant autism-related challenges across multiple domains. Professional evaluation and comprehensive intervention programs are strongly recommended." };
+      return { level: "Severe", color: "#C0392B", bg: "#FDECEB",
+        text: "Score falls in the 90th percentile range (104+), indicating severe autism-related challenges. The child will likely require continuous support and comprehensive, intensive intervention. Immediate professional evaluation is recommended." };
+    }
+
+    // ─── WELCOME SCREEN ────────────────────────────────────────────────
+    function WelcomeScreen({ onStart }) {
+      return (
+        <div className="app-shell">
+          <div className="scroll-area" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px 24px 20px' }}>
+            <div className="fade-up" style={{ marginBottom: 12 }}>
+              <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+                <circle cx="36" cy="36" r="34" fill="#E8F0FE" stroke="#4A7CDB" strokeWidth="2.5"/>
+                <path d="M25 31c0-2.5 2-4.5 4.5-4.5S34 28.5 34 31M38 31c0-2.5 2-4.5 4.5-4.5S47 28.5 47 31" stroke="#4A7CDB" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M27 42c0 0 3.5 5 9 5s9-5 9-5" stroke="#4A7CDB" strokeWidth="2.5" strokeLinecap="round"/>
+                <circle cx="22" cy="36" r="3.5" fill="#FDE8E8" opacity="0.6"/>
+                <circle cx="50" cy="36" r="3.5" fill="#FDE8E8" opacity="0.6"/>
+              </svg>
+            </div>
+            <h1 className="fade-up fade-up-d1" style={{ fontSize: 42, fontWeight: 800, color: '#1A2340', letterSpacing: '-1.5px', marginBottom: 4 }}>ATEC</h1>
+            <p className="fade-up fade-up-d1" style={{ fontSize: 14, color: '#6B7A99', fontWeight: 500, marginBottom: 32 }}>Autism Treatment Evaluation Checklist</p>
+
+            <div className="fade-up fade-up-d2" style={{ background: '#F5F7FB', borderRadius: 18, padding: '22px 24px', width: '100%', marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: '#3A4260', lineHeight: 1.7, marginBottom: 16 }}>
+                A <strong>77-item</strong> caregiver questionnaire developed by
+                <strong> Dr. Bernard Rimland</strong> & <strong>Dr. Stephen M. Edelson</strong> at
+                the Autism Research Institute.
+              </p>
+              <div style={{ height: 1, background: '#DFE3EC', marginBottom: 16 }}></div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>⏱</span>
+                  <span style={{ fontSize: 13, color: '#5A6680' }}>Takes about 10–15 minutes</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>📊</span>
+                  <span style={{ fontSize: 13, color: '#5A6680' }}>Instant scoring across 4 domains</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>🔒</span>
+                  <span style={{ fontSize: 13, color: '#5A6680' }}>100% private — nothing leaves your device</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="fade-up fade-up-d3" style={{ background: '#FFF8E1', borderRadius: 14, padding: '14px 18px', width: '100%' }}>
+              <p style={{ fontSize: 12, color: '#7A6520', lineHeight: 1.6 }}>
+                <strong>Important:</strong> The ATEC is <em>not</em> a diagnostic tool. It is designed
+                to track treatment progress over time. Always consult a qualified healthcare
+                professional for diagnosis.
+              </p>
+            </div>
+          </div>
+          <div className="bottom-bar">
+            <button className="btn-primary fade-up fade-up-d4" onClick={onStart}>Begin Assessment</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── CHILD INFO SCREEN ─────────────────────────────────────────────
+    function ChildInfoScreen({ onNext, onBack }) {
+      const [name, setName] = useState('');
+      const [age, setAge] = useState('');
+      const [sex, setSex] = useState('');
+      const canContinue = name.trim() && age && sex;
+
+      return (
+        <div className="app-shell">
+          <div className="scroll-area" style={{ padding: '16px 20px' }}>
+            <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#4A7CDB', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}>← Back</button>
+            <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Step 1 of 6</p>
+            <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: '#1A2340', marginBottom: 6, letterSpacing: '-0.3px' }}>Child Information</h2>
+            <p className="fade-up fade-up-d1" style={{ fontSize: 13, color: '#6B7A99', marginBottom: 28 }}>Enter basic details about the child being evaluated.</p>
+
+            <div className="fade-up fade-up-d2">
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Child's Name</label>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="First name"
+                style={{ width: '100%', padding: '14px 16px', fontSize: 16, border: '2px solid #E0E5EC', borderRadius: 12, color: '#1A2340', background: '#FAFBFD', transition: 'border-color 0.2s' }}
+                onFocus={e => e.target.style.borderColor = '#4A7CDB'}
+                onBlur={e => e.target.style.borderColor = '#E0E5EC'} />
+            </div>
+
+            <div className="fade-up fade-up-d2" style={{ marginTop: 22 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Age (years)</label>
+              <input value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 5" type="number" min="1" max="18"
+                style={{ width: '100%', padding: '14px 16px', fontSize: 16, border: '2px solid #E0E5EC', borderRadius: 12, color: '#1A2340', background: '#FAFBFD', transition: 'border-color 0.2s' }}
+                onFocus={e => e.target.style.borderColor = '#4A7CDB'}
+                onBlur={e => e.target.style.borderColor = '#E0E5EC'} />
+            </div>
+
+            <div className="fade-up fade-up-d3" style={{ marginTop: 22 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Sex</label>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {['Male', 'Female'].map(s => (
+                  <button key={s} onClick={() => setSex(s)}
+                    style={{
+                      flex: 1, padding: '14px 0', fontSize: 15, fontWeight: 600,
+                      border: sex === s ? '2px solid #4A7CDB' : '2px solid #E0E5EC',
+                      borderRadius: 12,
+                      background: sex === s ? '#E8F0FE' : '#FAFBFD',
+                      color: sex === s ? '#4A7CDB' : '#6B7A99',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                    }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="bottom-bar">
+            <button className="btn-primary" disabled={!canContinue}
+              onClick={() => canContinue && onNext({ name: name.trim(), age, sex })}>
+              Continue
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── QUESTION SCREEN ───────────────────────────────────────────────
+    function QuestionScreen({ section, sectionIndex, answers, onAnswer, onNext, onBack, totalSections }) {
+      const scrollRef = useRef(null);
+      const totalItems = section.items.length;
+      const answeredCount = Object.keys(answers).length;
+      const allAnswered = answeredCount === totalItems;
+
+      useEffect(() => {
+        if (scrollRef.current) scrollRef.current.scrollTop = 0;
+      }, [section.id]);
+
+      return (
+        <div className="app-shell">
+          {/* Header */}
+          <div style={{ padding: '14px 20px 12px', flexShrink: 0 }}>
+            <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#4A7CDB', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 8 }}>← Back</button>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>Step {sectionIndex + 2} of 6</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <span style={{ fontSize: 26 }}>{section.icon}</span>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A2340', letterSpacing: '-0.3px' }}>{section.title}</h2>
+            </div>
+            <p style={{ fontSize: 13, color: '#6B7A99', marginBottom: 10 }}>{section.instruction}</p>
+            <div style={{ height: 6, background: '#EDF0F5', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
+              <div style={{ height: '100%', width: `${(answeredCount / totalItems) * 100}%`, background: 'linear-gradient(90deg, #4A7CDB, #6C9AED)', borderRadius: 3, transition: 'width 0.35s ease' }}></div>
+            </div>
+            <p style={{ fontSize: 11, color: '#9AA5B8' }}>{answeredCount} of {totalItems} answered</p>
+          </div>
+
+          {/* Items */}
+          <div ref={scrollRef} className="scroll-area" style={{ padding: '4px 20px 16px' }}>
+            {section.items.map((item, i) => (
+              <div key={i} style={{
+                background: '#FAFBFD', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
+                borderLeft: answers[i] !== undefined ? '4px solid #4A7CDB' : '4px solid #E0E5EC',
+                transition: 'border-color 0.25s',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9AA5B8', letterSpacing: 0.5 }}>Q{i + 1}</span>
+                  {answers[i] !== undefined && <span style={{ fontSize: 10, color: '#4A7CDB', fontWeight: 600 }}>✓</span>}
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: '#1A2340', marginBottom: 12, lineHeight: 1.45 }}>{item}</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {section.options.map((opt, oi) => {
+                    const isActive = answers[i] === opt.value;
+                    return (
+                      <button key={oi} onClick={() => onAnswer(section.id, i, opt.value)}
+                        style={{
+                          padding: '9px 12px', fontSize: 12, fontWeight: 600,
+                          border: isActive ? '2px solid #4A7CDB' : '2px solid #E0E5EC',
+                          borderRadius: 9,
+                          background: isActive ? '#4A7CDB' : '#fff',
+                          color: isActive ? '#fff' : '#6B7A99',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                          flex: '1 1 auto', textAlign: 'center',
+                        }}>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bottom-bar">
+            <button className="btn-primary" disabled={!allAnswered} onClick={() => allAnswered && onNext()}>
+              {sectionIndex < totalSections - 1 ? 'Next Section →' : 'View Results'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── RESULTS SCREEN ────────────────────────────────────────────────
+    function ResultsScreen({ childInfo, allAnswers, onRestart }) {
+      const sectionScores = SECTIONS.map(section => {
+        const ans = allAnswers[section.id] || {};
+        const score = section.items.reduce((sum, _, i) => sum + (ans[i] || 0), 0);
+        return { ...section, score };
+      });
+      const totalScore = sectionScores.reduce((sum, s) => sum + s.score, 0);
+      const interp = getInterpretation(totalScore);
+      const maxTotal = 179;
+      const barColors = ['#4A7CDB', '#7C5CBF', '#D4A017', '#E07C3E'];
+      const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      return (
+        <div className="app-shell">
+          <div className="scroll-area" style={{ padding: '0 20px 20px' }}>
+            <div style={{ textAlign: 'center', paddingTop: 28, marginBottom: 24 }}>
+              <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Results</p>
+              <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: '#1A2340', marginBottom: 4, letterSpacing: '-0.3px' }}>{childInfo.name}'s ATEC Score</h2>
+              <p className="fade-up fade-up-d1" style={{ color: '#6B7A99', fontSize: 13 }}>{childInfo.age} years old · {childInfo.sex} · {dateStr}</p>
+            </div>
+
+            {/* Score circle */}
+            <div className="scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+              <div style={{
+                width: 168, height: 168, borderRadius: '50%',
+                background: interp.bg, border: `4px solid ${interp.color}`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 8px 32px ${interp.color}22`,
+              }}>
+                <span style={{ fontSize: 52, fontWeight: 800, color: interp.color, lineHeight: 1 }}>{totalScore}</span>
+                <span style={{ fontSize: 12, color: '#6B7A99', marginTop: 4 }}>out of {maxTotal}</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, color: interp.color, marginTop: 6,
+                  padding: '3px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.8)',
+                }}>{interp.level}</span>
+              </div>
+            </div>
+
+            {/* Interpretation */}
+            <div className="fade-up fade-up-d2" style={{
+              background: interp.bg, borderRadius: 16, padding: '18px 20px', marginBottom: 28,
+              borderLeft: `4px solid ${interp.color}`,
+            }}>
+              <p style={{ fontSize: 13, color: '#3A4260', lineHeight: 1.7 }}>{interp.text}</p>
+            </div>
+
+            {/* Subscale bars */}
+            <h3 className="fade-up fade-up-d2" style={{ fontSize: 16, fontWeight: 700, color: '#1A2340', marginBottom: 18 }}>Subscale Breakdown</h3>
+            {sectionScores.map((s, i) => {
+              const pct = (s.score / s.maxScore) * 100;
+              return (
+                <div key={s.id} className="fade-up" style={{ marginBottom: 18, animationDelay: `${0.15 + i * 0.06}s` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#3A4260' }}>{s.icon} {s.title}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: barColors[i] }}>{s.score} / {s.maxScore}</span>
+                  </div>
+                  <div style={{ height: 10, background: '#EDF0F5', borderRadius: 5, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${pct}%`, background: barColors[i], borderRadius: 5,
+                      transition: 'width 1s ease', animation: 'fillBar 1s ease both',
+                    }}></div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Score reference */}
+            <div style={{ marginTop: 24, background: '#F5F7FB', borderRadius: 16, padding: '20px' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A2340', marginBottom: 14 }}>Score Reference Guide</h3>
+              {[
+                { range: '0 – 15', label: 'Minimal concerns', color: '#2D9F6F' },
+                { range: '16 – 30', label: 'Mild concerns', color: '#5BA85B' },
+                { range: '31 – 50', label: 'Moderate concerns', color: '#D4A017' },
+                { range: '51 – 103', label: 'Significant concerns', color: '#E07C3E' },
+                { range: '104 – 179', label: 'Severe (90th percentile)', color: '#C0392B' },
+              ].map(r => (
+                <div key={r.range} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: r.color, flexShrink: 0 }}></div>
+                  <span style={{ fontSize: 13, color: '#3A4260' }}><strong>{r.range}:</strong> {r.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Disclaimer */}
+            <div style={{
+              marginTop: 20, background: '#FFF8E1', borderRadius: 14, padding: '16px 18px',
+              borderLeft: '4px solid #D4A017',
+            }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#8B6914', marginBottom: 6 }}>⚠️ Important Reminder</p>
+              <p style={{ fontSize: 12, color: '#6B5A1E', lineHeight: 1.65 }}>
+                The ATEC is a treatment evaluation tool — not a diagnostic instrument. These results
+                should be discussed with a qualified healthcare professional. Lower scores indicate
+                fewer concerns; higher scores suggest areas that may benefit from intervention.
+              </p>
+            </div>
+
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <p style={{ fontSize: 11, color: '#9AA5B8', lineHeight: 1.5 }}>
+                © Autism Research Institute. ATEC by Rimland & Edelson.<br/>
+                For non-commercial use only.
+              </p>
+            </div>
+          </div>
+
+          <div className="bottom-bar" style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => window.print()}
+              style={{
+                flex: '0 0 auto', padding: '16px 20px', fontSize: 15, fontWeight: 700,
+                color: '#4A7CDB', background: '#E8F0FE', border: 'none', borderRadius: 14,
+                cursor: 'pointer',
+              }}>
+              🖨
+            </button>
+            <button className="btn-primary" onClick={onRestart}>Start New Assessment</button>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── MAIN APP ──────────────────────────────────────────────────────
+    function App() {
+      const [screen, setScreen] = useState('welcome');
+      const [childInfo, setChildInfo] = useState({});
+      const [allAnswers, setAllAnswers] = useState({});
+
+      const handleAnswer = useCallback((sectionId, itemIndex, value) => {
+        setAllAnswers(prev => ({
+          ...prev,
+          [sectionId]: { ...(prev[sectionId] || {}), [itemIndex]: value },
+        }));
+      }, []);
+
+      const sectionIndex = screen.startsWith('section-') ? parseInt(screen.split('-')[1]) : -1;
+
+      if (screen === 'welcome') return <WelcomeScreen onStart={() => setScreen('info')} />;
+
+      if (screen === 'info') return (
+        <ChildInfoScreen
+          onBack={() => setScreen('welcome')}
+          onNext={info => { setChildInfo(info); setScreen('section-0'); }}
+        />
+      );
+
+      if (screen === 'results') return (
+        <ResultsScreen childInfo={childInfo} allAnswers={allAnswers}
+          onRestart={() => { setScreen('welcome'); setChildInfo({}); setAllAnswers({}); }} />
+      );
+
+      if (sectionIndex >= 0) {
+        const section = SECTIONS[sectionIndex];
+        return (
+          <QuestionScreen
+            section={section} sectionIndex={sectionIndex}
+            answers={allAnswers[section.id] || {}}
+            onAnswer={handleAnswer}
+            totalSections={SECTIONS.length}
+            onBack={() => sectionIndex === 0 ? setScreen('info') : setScreen(`section-${sectionIndex - 1}`)}
+            onNext={() => sectionIndex < SECTIONS.length - 1 ? setScreen(`section-${sectionIndex + 1}`) : setScreen('results')}
+          />
+        );
+      }
+
+      return null;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
