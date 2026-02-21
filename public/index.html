@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#ffffff" />
-  <title>ATEC Screener — Autism Treatment Evaluation Checklist</title>
+  <title>ATEC Screener</title>
   <meta name="description" content="Free online ATEC (Autism Treatment Evaluation Checklist) screener. 77-item caregiver questionnaire with instant scoring across 4 developmental domains." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,60 +25,37 @@
     body { overflow: hidden; }
     input:focus, button:focus { outline: none; }
     button { font-family: inherit; }
-
-    /* App shell */
     .app-shell {
-      max-width: 480px;
-      margin: 0 auto;
-      height: 100dvh;
-      background: #fff;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: 0 0 40px rgba(26,35,64,0.08);
-      overflow: hidden;
+      max-width: 480px; margin: 0 auto; height: 100dvh; background: #fff;
+      display: flex; flex-direction: column; position: relative;
+      box-shadow: 0 0 40px rgba(26,35,64,0.08); overflow: hidden;
     }
-
-    /* Scrollable area */
     .scroll-area {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; scrollbar-width: thin;
       scrollbar-color: #D0D5E0 transparent;
     }
     .scroll-area::-webkit-scrollbar { width: 4px; }
     .scroll-area::-webkit-scrollbar-track { background: transparent; }
     .scroll-area::-webkit-scrollbar-thumb { background: #D0D5E0; border-radius: 4px; }
-
-    /* Bottom bar */
     .bottom-bar {
       padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
-      background: #fff;
-      border-top: 1px solid #EDF0F5;
-      flex-shrink: 0;
+      background: #fff; border-top: 1px solid #EDF0F5; flex-shrink: 0;
     }
-
-    /* Primary button */
     .btn-primary {
-      width: 100%;
-      padding: 16px 0;
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
+      width: 100%; padding: 16px 0; font-size: 16px; font-weight: 700; color: #fff;
       background: linear-gradient(135deg, #4A7CDB 0%, #3B5FBF 100%);
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.3px;
+      border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
     }
     .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
     .btn-primary:disabled { opacity: 0.4; cursor: default; }
     .btn-primary:disabled:active { transform: none; }
-
-    /* Animations */
+    .btn-secondary {
+      width: 100%; padding: 14px 0; font-size: 15px; font-weight: 700;
+      color: #4A7CDB; background: #E8F0FE; border: none; border-radius: 14px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-secondary:active { transform: scale(0.98); opacity: 0.85; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
@@ -88,18 +65,11 @@
     .fade-up-d2 { animation-delay: 0.12s; }
     .fade-up-d3 { animation-delay: 0.18s; }
     .fade-up-d4 { animation-delay: 0.24s; }
-
     @keyframes scaleIn {
       from { opacity: 0; transform: scale(0.85); }
       to { opacity: 1; transform: scale(1); }
     }
     .scale-in { animation: scaleIn 0.5s ease-out both; }
-
-    @keyframes fillBar {
-      from { width: 0; }
-    }
-
-    /* Print styles */
     @media print {
       .bottom-bar { display: none; }
       .app-shell { box-shadow: none; max-width: 100%; height: auto; }
@@ -110,22 +80,63 @@
 <body>
   <div id="root"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+    var React = window.React;
+    var ReactDOM = window.ReactDOM;
+    var useState = React.useState;
+    var useEffect = React.useEffect;
+    var useRef = React.useRef;
+    var useCallback = React.useCallback;
+    var useMemo = React.useMemo;
 
-    // ─── ATEC DATA ─────────────────────────────────────────────────────
-    const SECTIONS = [
+    function getJsPDF() {
+      try {
+        if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+        if (window.jsPDF) return window.jsPDF;
+      } catch(e) {}
+      return null;
+    }
+
+    /* ===== STORAGE ===== */
+    var STORAGE_KEY = "atec_history";
+
+    function loadHistory() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch(e) { return []; }
+    }
+
+    function saveToHistory(entry) {
+      var history = loadHistory();
+      history.push(Object.assign({}, entry, { id: Date.now(), date: new Date().toISOString() }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    }
+
+    function deleteFromHistory(id) {
+      var history = loadHistory().filter(function(e) { return e.id !== id; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    }
+
+    function clearAllHistory() {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    /* ===== ATEC DATA ===== */
+    var SECTIONS = [
       {
-        id: "speech", title: "Speech / Language / Communication", subtitle: "14 items", icon: "💬",
+        id: "speech", title: "Speech / Language / Communication",
+        shortTitle: "Speech", subtitle: "14 items", icon: "\uD83D\uDCAC",
         instruction: "Rate how true each statement is for your child.",
         options: [
           { label: "Not True", value: 2 },
           { label: "Somewhat True", value: 1 },
-          { label: "Very True", value: 0 },
+          { label: "Very True", value: 0 }
         ],
         maxScore: 28,
         items: [
@@ -135,36 +146,38 @@
           "Can use sentences with 4 or more words", "Explains what he/she wants",
           "Asks meaningful questions", "Speech tends to be meaningful/relevant",
           "Often uses several successive sentences", "Carries on fairly good conversation",
-          "Has normal ability to communicate for his/her age",
-        ],
+          "Has normal ability to communicate for his/her age"
+        ]
       },
       {
-        id: "sociability", title: "Sociability", subtitle: "20 items", icon: "🤝",
+        id: "sociability", title: "Sociability",
+        shortTitle: "Sociability", subtitle: "20 items", icon: "\uD83E\uDD1D",
         instruction: "Rate how descriptive each statement is of your child.",
         options: [
           { label: "Not Descriptive", value: 0 },
           { label: "Somewhat", value: 1 },
-          { label: "Very Descriptive", value: 2 },
+          { label: "Very Descriptive", value: 2 }
         ],
         maxScore: 40,
         items: [
-          "Seems to be in a shell — you cannot reach him/her", "Ignores other people",
+          "Seems to be in a shell \u2014 you cannot reach him/her", "Ignores other people",
           "Pays little or no attention when addressed", "Uncooperative and resistant",
           "No eye contact", "Prefers to be left alone", "Shows no affection",
           "Fails to greet parents", "Avoids contact with others", "Does not imitate",
           "Dislikes being held/cuddled", "Does not share or show", "Does not wave 'bye bye'",
           "Disagreeable/not compliant", "Temper tantrums", "Lacks friends/companions",
           "Rarely smiles", "Insensitive to other's feelings", "Indifferent to being liked",
-          "Indifferent if parent(s) leave",
-        ],
+          "Indifferent if parent(s) leave"
+        ]
       },
       {
-        id: "sensory", title: "Sensory / Cognitive Awareness", subtitle: "18 items", icon: "🧠",
+        id: "sensory", title: "Sensory / Cognitive Awareness",
+        shortTitle: "Sensory", subtitle: "18 items", icon: "\uD83E\uDDE0",
         instruction: "Rate how descriptive each statement is of your child.",
         options: [
           { label: "Not Descriptive", value: 2 },
           { label: "Somewhat", value: 1 },
-          { label: "Very Descriptive", value: 0 },
+          { label: "Very Descriptive", value: 0 }
         ],
         maxScore: 36,
         items: [
@@ -172,18 +185,19 @@
           "Looks at pictures (and TV)", "Does drawing, coloring, art", "Plays with toys appropriately",
           "Appropriate facial expression", "Understands stories on TV", "Understands explanations",
           "Aware of environment", "Aware of danger", "Shows imagination", "Initiates activities",
-          "Dresses self", "Curious, interested", "Venturesome — explores",
-          '"Tuned in" — Not spacey', "Looks where others are looking",
-        ],
+          "Dresses self", "Curious, interested", "Venturesome \u2014 explores",
+          "Tuned in \u2014 Not spacey", "Looks where others are looking"
+        ]
       },
       {
-        id: "health", title: "Health / Physical / Behavior", subtitle: "25 items", icon: "🩺",
+        id: "health", title: "Health / Physical / Behavior",
+        shortTitle: "Health", subtitle: "25 items", icon: "\u2695",
         instruction: "Rate the severity of each issue for your child.",
         options: [
           { label: "Not a Problem", value: 0 },
           { label: "Minor", value: 1 },
           { label: "Moderate", value: 2 },
-          { label: "Serious", value: 3 },
+          { label: "Serious", value: 3 }
         ],
         maxScore: 75,
         items: [
@@ -193,30 +207,212 @@
           "Destructive", "Sound-sensitive", "Anxious/fearful", "Unhappy/crying",
           "Seizures", "Obsessive speech", "Rigid routines", "Shouts or screams",
           "Demands sameness", "Often agitated", "Not sensitive to pain",
-          '"Hooked" or fixated on certain objects/topics',
-          "Repetitive movements (stimming, rocking, etc.)",
-        ],
-      },
+          "Hooked or fixated on certain objects/topics",
+          "Repetitive movements (stimming, rocking, etc.)"
+        ]
+      }
     ];
+
+    var BAR_COLORS = ["#4A7CDB", "#7C5CBF", "#D4A017", "#E07C3E"];
 
     function getInterpretation(total) {
       if (total <= 15) return { level: "Minimal", color: "#2D9F6F", bg: "#E8F8F0",
         text: "Score is within the range typically associated with minimal or no autism-related concerns. The child's behaviors and abilities appear largely consistent with typical developmental patterns." };
       if (total <= 30) return { level: "Mild", color: "#5BA85B", bg: "#EFF8EF",
-        text: "Score suggests relatively mild concerns. The child may show some atypical behaviors but generally possesses functional communication and social skills. Research indicates children scoring below 30 at age five have a high chance of leading a normal and independent life." };
+        text: "Score suggests relatively mild concerns. Research indicates children scoring below 30 at age five have a high chance of leading a normal and independent life." };
       if (total <= 50) return { level: "Moderate", color: "#D4A017", bg: "#FFF8E1",
-        text: "Score suggests moderate autism-related concerns. The child may face challenges in communication, sociability, or behavior that could benefit from intervention. Research suggests children in this range will most likely be able to lead a semi-independent life." };
+        text: "Score suggests moderate autism-related concerns. The child may face challenges in communication, sociability, or behavior that could benefit from intervention." };
       if (total <= 103) return { level: "Significant", color: "#E07C3E", bg: "#FFF3EB",
         text: "Score indicates significant autism-related challenges across multiple domains. Professional evaluation and comprehensive intervention programs are strongly recommended." };
       return { level: "Severe", color: "#C0392B", bg: "#FDECEB",
-        text: "Score falls in the 90th percentile range (104+), indicating severe autism-related challenges. The child will likely require continuous support and comprehensive, intensive intervention. Immediate professional evaluation is recommended." };
+        text: "Score falls in the 90th percentile range (104+), indicating severe autism-related challenges requiring continuous support and intensive intervention." };
     }
 
-    // ─── WELCOME SCREEN ────────────────────────────────────────────────
-    function WelcomeScreen({ onStart }) {
+    function calcScores(allAnswers) {
+      return SECTIONS.map(function(section) {
+        var ans = allAnswers[section.id] || {};
+        var score = section.items.reduce(function(sum, _, i) {
+          return sum + (ans[i] !== undefined ? ans[i] : 0);
+        }, 0);
+        return { id: section.id, title: section.title, shortTitle: section.shortTitle, icon: section.icon, score: score, maxScore: section.maxScore };
+      });
+    }
+
+    function formatDate(isoStr) {
+      return new Date(isoStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    }
+    function formatDateShort(isoStr) {
+      return new Date(isoStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+    }
+
+    /* ===== PDF ===== */
+    function hexToRgb(hex) {
+      var c = hex.replace("#", "");
+      return [parseInt(c.substring(0,2),16), parseInt(c.substring(2,4),16), parseInt(c.substring(4,6),16)];
+    }
+
+    function generatePDF(childInfo, sectionScores, totalScore, interp, dateStr) {
+      var JsPDF = getJsPDF();
+      if (!JsPDF) { alert("PDF library not loaded. Please refresh the page and try again."); return null; }
+      var doc = new JsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      var W = 210; var margin = 18; var cw = W - margin * 2; var y = 0;
+
+      doc.setFillColor(74, 124, 219);
+      doc.rect(0, 0, W, 28, "F");
+      doc.setFontSize(18); doc.setFont("helvetica","bold"); doc.setTextColor(255,255,255);
+      doc.text("ATEC Assessment Report", margin, 12);
+      doc.setFontSize(10); doc.setFont("helvetica","normal"); doc.setTextColor(200,218,251);
+      doc.text("Autism Treatment Evaluation Checklist", margin, 19);
+      y = 38;
+
+      doc.setFontSize(10); doc.setTextColor(107,122,153);
+      doc.text("Child:", margin, y);
+      doc.setFont("helvetica","bold"); doc.setTextColor(26,35,64);
+      doc.text(childInfo.name, margin + 14, y);
+      doc.setFont("helvetica","normal"); doc.setTextColor(107,122,153);
+      doc.text("Age: " + childInfo.age + " yrs", margin + 70, y);
+      doc.text("Sex: " + childInfo.sex, margin + 100, y);
+      doc.text("Date: " + dateStr, W - margin, y, { align: "right" });
+      y += 12;
+
+      var boxH = 36;
+      doc.setFillColor.apply(doc, hexToRgb(interp.bg));
+      doc.roundedRect(margin, y, cw, boxH, 4, 4, "F");
+      doc.setDrawColor.apply(doc, hexToRgb(interp.color)); doc.setLineWidth(0.5);
+      doc.roundedRect(margin, y, cw, boxH, 4, 4, "S");
+      doc.setFontSize(10); doc.setTextColor(107,122,153); doc.setFont("helvetica","normal");
+      doc.text("Total Score", margin + 10, y + 10);
+      doc.setFontSize(28); doc.setFont("helvetica","bold"); doc.setTextColor.apply(doc, hexToRgb(interp.color));
+      doc.text(String(totalScore), margin + 10, y + 24);
+      doc.setFontSize(12); doc.setTextColor(154,165,184); doc.setFont("helvetica","normal");
+      doc.text("/ 179", margin + 10 + doc.getTextWidth(String(totalScore)) + 2, y + 24);
+      doc.setFontSize(14); doc.setFont("helvetica","bold"); doc.setTextColor.apply(doc, hexToRgb(interp.color));
+      doc.text(interp.level, margin + 60, y + 18);
+      doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(58,66,96);
+      var interpLines = doc.splitTextToSize(interp.text, cw - 80);
+      doc.text(interpLines, margin + 60, y + 24);
+      y += boxH + 12;
+
+      doc.setFontSize(13); doc.setFont("helvetica","bold"); doc.setTextColor(26,35,64);
+      doc.text("Subscale Breakdown", margin, y);
+      y += 8;
+
+      sectionScores.forEach(function(s, i) {
+        var pct = s.score / s.maxScore;
+        doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(58,66,96);
+        doc.text(s.title, margin, y + 4);
+        doc.setFont("helvetica","bold"); doc.setTextColor.apply(doc, hexToRgb(BAR_COLORS[i]));
+        doc.text(s.score + " / " + s.maxScore, W - margin, y + 4, { align: "right" });
+        y += 7;
+        doc.setFillColor(237,240,245); doc.roundedRect(margin, y, cw, 4, 2, 2, "F");
+        if (pct > 0.02) { doc.setFillColor.apply(doc, hexToRgb(BAR_COLORS[i])); doc.roundedRect(margin, y, cw * pct, 4, 2, 2, "F"); }
+        y += 10;
+      });
+      y += 4;
+
+      doc.setFillColor(245,247,251); doc.roundedRect(margin, y, cw, 48, 4, 4, "F");
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(26,35,64);
+      doc.text("Score Reference Guide", margin + 8, y + 8);
+      var refs = [
+        { range: "0-15", label: "Minimal concerns", color: "#2D9F6F" },
+        { range: "16-30", label: "Mild concerns", color: "#5BA85B" },
+        { range: "31-50", label: "Moderate concerns", color: "#D4A017" },
+        { range: "51-103", label: "Significant concerns", color: "#E07C3E" },
+        { range: "104-179", label: "Severe concerns (90th percentile)", color: "#C0392B" }
+      ];
+      refs.forEach(function(r, i) {
+        var ry = y + 15 + i * 6.5;
+        doc.setFillColor.apply(doc, hexToRgb(r.color)); doc.rect(margin + 8, ry - 2.5, 3, 3, "F");
+        doc.setFontSize(8.5); doc.setFont("helvetica","normal"); doc.setTextColor(58,66,96);
+        doc.text(r.range + ": " + r.label, margin + 14, ry);
+      });
+      y += 56;
+
+      doc.setFillColor(255,248,225); doc.roundedRect(margin, y, cw, 22, 4, 4, "F");
+      doc.setFontSize(7.5); doc.setFont("helvetica","bold"); doc.setTextColor(139,105,20);
+      doc.text("Important: ", margin + 6, y + 7);
+      doc.setFont("helvetica","normal"); doc.setTextColor(107,90,30);
+      var discLines = doc.splitTextToSize("The ATEC is a treatment evaluation tool, not a diagnostic instrument. These results should be discussed with a qualified healthcare professional.", cw - 14);
+      doc.text(discLines, margin + 6, y + 12);
+
+      doc.setFontSize(7); doc.setTextColor(154,165,184);
+      doc.text("ATEC by Rimland & Edelson, Autism Research Institute. For non-commercial use only.", W / 2, 285, { align: "center" });
+      doc.text("Generated at atec-screener.vercel.app", W / 2, 289, { align: "center" });
+
+      return doc;
+    }
+
+    /* ===== TREND CHART ===== */
+    function TrendChart(props) {
+      var history = props.history;
+      var metric = props.metric;
+      var label = props.label;
+      var maxVal = props.maxVal;
+      var color = props.color;
+
+      if (!history || history.length < 2) return null;
+
+      var W = 340; var H = 160; var padL = 36; var padR = 16; var padT = 20; var padB = 36;
+      var chartW = W - padL - padR;
+      var chartH = H - padT - padB;
+
+      var points = history.map(function(entry, i) {
+        var val;
+        if (metric === "total") {
+          val = entry.totalScore;
+        } else {
+          var found = entry.subscaleScores.find(function(s) { return s.id === metric; });
+          val = found ? found.score : 0;
+        }
+        var x = padL + (i / (history.length - 1)) * chartW;
+        var y = padT + chartH - (val / maxVal) * chartH;
+        return { x: x, y: y, val: val, date: entry.date };
+      });
+
+      var yTicks = 4;
+      var yLines = [];
+      for (var i = 0; i <= yTicks; i++) {
+        var val = Math.round((maxVal / yTicks) * i);
+        var yy = padT + chartH - (val / maxVal) * chartH;
+        yLines.push({ val: val, y: yy });
+      }
+
+      var pathD = points.map(function(p, i) { return (i === 0 ? "M" : "L") + " " + p.x + " " + p.y; }).join(" ");
+      var areaD = pathD + " L " + points[points.length-1].x + " " + (padT + chartH) + " L " + points[0].x + " " + (padT + chartH) + " Z";
+
+      return (
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#1A2340", marginBottom: 8 }}>{label}</p>
+          <svg viewBox={"0 0 " + W + " " + H} style={{ width: "100%", height: "auto" }}>
+            {yLines.map(function(yl, i) {
+              return (
+                <g key={i}>
+                  <line x1={padL} y1={yl.y} x2={W - padR} y2={yl.y} stroke="#EDF0F5" strokeWidth="1" />
+                  <text x={padL - 6} y={yl.y + 4} textAnchor="end" fontSize="9" fill="#9AA5B8">{yl.val}</text>
+                </g>
+              );
+            })}
+            <path d={areaD} fill={color} opacity="0.08" />
+            <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            {points.map(function(p, i) {
+              return (
+                <g key={i}>
+                  <circle cx={p.x} cy={p.y} r="5" fill="#fff" stroke={color} strokeWidth="2.5" />
+                  <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill={color}>{p.val}</text>
+                  <text x={p.x} y={padT + chartH + 16} textAnchor="middle" fontSize="8" fill="#9AA5B8">{formatDateShort(p.date)}</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
+
+    /* ===== WELCOME ===== */
+    function WelcomeScreen(props) {
       return (
         <div className="app-shell">
-          <div className="scroll-area" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px 24px 20px' }}>
+          <div className="scroll-area" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "40px 24px 20px" }}>
             <div className="fade-up" style={{ marginBottom: 12 }}>
               <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
                 <circle cx="36" cy="36" r="34" fill="#E8F0FE" stroke="#4A7CDB" strokeWidth="2.5"/>
@@ -226,347 +422,491 @@
                 <circle cx="50" cy="36" r="3.5" fill="#FDE8E8" opacity="0.6"/>
               </svg>
             </div>
-            <h1 className="fade-up fade-up-d1" style={{ fontSize: 42, fontWeight: 800, color: '#1A2340', letterSpacing: '-1.5px', marginBottom: 4 }}>ATEC</h1>
-            <p className="fade-up fade-up-d1" style={{ fontSize: 14, color: '#6B7A99', fontWeight: 500, marginBottom: 32 }}>Autism Treatment Evaluation Checklist</p>
+            <h1 className="fade-up fade-up-d1" style={{ fontSize: 42, fontWeight: 800, color: "#1A2340", letterSpacing: "-1.5px", marginBottom: 4 }}>ATEC</h1>
+            <p className="fade-up fade-up-d1" style={{ fontSize: 14, color: "#6B7A99", fontWeight: 500, marginBottom: 32 }}>Autism Treatment Evaluation Checklist</p>
 
-            <div className="fade-up fade-up-d2" style={{ background: '#F5F7FB', borderRadius: 18, padding: '22px 24px', width: '100%', marginBottom: 20 }}>
-              <p style={{ fontSize: 14, color: '#3A4260', lineHeight: 1.7, marginBottom: 16 }}>
-                A <strong>77-item</strong> caregiver questionnaire developed by
-                <strong> Dr. Bernard Rimland</strong> & <strong>Dr. Stephen M. Edelson</strong> at
-                the Autism Research Institute.
+            <div className="fade-up fade-up-d2" style={{ background: "#F5F7FB", borderRadius: 18, padding: "22px 24px", width: "100%", marginBottom: 20 }}>
+              <p style={{ fontSize: 14, color: "#3A4260", lineHeight: 1.7, marginBottom: 16 }}>
+                A <strong>77-item</strong> caregiver questionnaire developed by <strong>Dr. Bernard Rimland</strong> &amp; <strong>Dr. Stephen M. Edelson</strong> at the Autism Research Institute.
               </p>
-              <div style={{ height: 1, background: '#DFE3EC', marginBottom: 16 }}></div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>⏱</span>
-                  <span style={{ fontSize: 13, color: '#5A6680' }}>Takes about 10–15 minutes</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>📊</span>
-                  <span style={{ fontSize: 13, color: '#5A6680' }}>Instant scoring across 4 domains</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 18 }}>🔒</span>
-                  <span style={{ fontSize: 13, color: '#5A6680' }}>100% private — nothing leaves your device</span>
-                </div>
+              <div style={{ height: 1, background: "#DFE3EC", marginBottom: 16 }}></div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>&#9201;</span><span style={{ fontSize: 13, color: "#5A6680" }}>Takes about 10-15 minutes</span></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>&#128202;</span><span style={{ fontSize: 13, color: "#5A6680" }}>Instant scoring across 4 domains</span></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>&#128200;</span><span style={{ fontSize: 13, color: "#5A6680" }}>Track progress over time</span></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 18 }}>&#128274;</span><span style={{ fontSize: 13, color: "#5A6680" }}>100% private - data stays on your device</span></div>
               </div>
             </div>
 
-            <div className="fade-up fade-up-d3" style={{ background: '#FFF8E1', borderRadius: 14, padding: '14px 18px', width: '100%' }}>
-              <p style={{ fontSize: 12, color: '#7A6520', lineHeight: 1.6 }}>
-                <strong>Important:</strong> The ATEC is <em>not</em> a diagnostic tool. It is designed
-                to track treatment progress over time. Always consult a qualified healthcare
-                professional for diagnosis.
+            <div className="fade-up fade-up-d3" style={{ background: "#FFF8E1", borderRadius: 14, padding: "14px 18px", width: "100%" }}>
+              <p style={{ fontSize: 12, color: "#7A6520", lineHeight: 1.6 }}>
+                <strong>Important:</strong> The ATEC is <em>not</em> a diagnostic tool. It is designed to track treatment progress over time. Always consult a qualified healthcare professional for diagnosis.
               </p>
             </div>
           </div>
-          <div className="bottom-bar">
-            <button className="btn-primary fade-up fade-up-d4" onClick={onStart}>Begin Assessment</button>
+          <div className="bottom-bar" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <button className="btn-primary fade-up fade-up-d4" onClick={props.onStart}>New Assessment</button>
+            {props.historyCount > 0 && (
+              <button className="btn-secondary fade-up fade-up-d4" onClick={props.onViewHistory}>
+                &#128200; View History ({props.historyCount} assessment{props.historyCount !== 1 ? "s" : ""})
+              </button>
+            )}
           </div>
         </div>
       );
     }
 
-    // ─── CHILD INFO SCREEN ─────────────────────────────────────────────
-    function ChildInfoScreen({ onNext, onBack }) {
-      const [name, setName] = useState('');
-      const [age, setAge] = useState('');
-      const [sex, setSex] = useState('');
-      const canContinue = name.trim() && age && sex;
+    /* ===== CHILD INFO ===== */
+    function ChildInfoScreen(props) {
+      var di = props.defaultInfo || {};
+      var nameState = useState(di.name || "");
+      var name = nameState[0]; var setName = nameState[1];
+      var ageState = useState(di.age || "");
+      var age = ageState[0]; var setAge = ageState[1];
+      var sexState = useState(di.sex || "");
+      var sex = sexState[0]; var setSex = sexState[1];
+      var canContinue = name.trim() && age && sex;
 
       return (
         <div className="app-shell">
-          <div className="scroll-area" style={{ padding: '16px 20px' }}>
-            <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#4A7CDB', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 12 }}>← Back</button>
-            <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Step 1 of 6</p>
-            <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: '#1A2340', marginBottom: 6, letterSpacing: '-0.3px' }}>Child Information</h2>
-            <p className="fade-up fade-up-d1" style={{ fontSize: 13, color: '#6B7A99', marginBottom: 28 }}>Enter basic details about the child being evaluated.</p>
+          <div className="scroll-area" style={{ padding: "16px 20px" }}>
+            <button onClick={props.onBack} style={{ background: "none", border: "none", color: "#4A7CDB", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 12 }}>&larr; Back</button>
+            <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: "#4A7CDB", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>Step 1 of 6</p>
+            <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: "#1A2340", marginBottom: 6 }}>Child Information</h2>
+            <p className="fade-up fade-up-d1" style={{ fontSize: 13, color: "#6B7A99", marginBottom: 28 }}>Enter basic details about the child being evaluated.</p>
 
             <div className="fade-up fade-up-d2">
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Child's Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="First name"
-                style={{ width: '100%', padding: '14px 16px', fontSize: 16, border: '2px solid #E0E5EC', borderRadius: 12, color: '#1A2340', background: '#FAFBFD', transition: 'border-color 0.2s' }}
-                onFocus={e => e.target.style.borderColor = '#4A7CDB'}
-                onBlur={e => e.target.style.borderColor = '#E0E5EC'} />
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#3A4260", marginBottom: 8 }}>Child's Name</label>
+              <input value={name} onChange={function(e) { setName(e.target.value); }} placeholder="First name"
+                style={{ width: "100%", padding: "14px 16px", fontSize: 16, border: "2px solid #E0E5EC", borderRadius: 12, color: "#1A2340", background: "#FAFBFD" }} />
             </div>
-
             <div className="fade-up fade-up-d2" style={{ marginTop: 22 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Age (years)</label>
-              <input value={age} onChange={e => setAge(e.target.value)} placeholder="e.g. 5" type="number" min="1" max="18"
-                style={{ width: '100%', padding: '14px 16px', fontSize: 16, border: '2px solid #E0E5EC', borderRadius: 12, color: '#1A2340', background: '#FAFBFD', transition: 'border-color 0.2s' }}
-                onFocus={e => e.target.style.borderColor = '#4A7CDB'}
-                onBlur={e => e.target.style.borderColor = '#E0E5EC'} />
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#3A4260", marginBottom: 8 }}>Age (years)</label>
+              <input value={age} onChange={function(e) { setAge(e.target.value); }} placeholder="e.g. 5" type="number" min="1" max="18"
+                style={{ width: "100%", padding: "14px 16px", fontSize: 16, border: "2px solid #E0E5EC", borderRadius: 12, color: "#1A2340", background: "#FAFBFD" }} />
             </div>
-
             <div className="fade-up fade-up-d3" style={{ marginTop: 22 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#3A4260', marginBottom: 8 }}>Sex</label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                {['Male', 'Female'].map(s => (
-                  <button key={s} onClick={() => setSex(s)}
-                    style={{
-                      flex: 1, padding: '14px 0', fontSize: 15, fontWeight: 600,
-                      border: sex === s ? '2px solid #4A7CDB' : '2px solid #E0E5EC',
-                      borderRadius: 12,
-                      background: sex === s ? '#E8F0FE' : '#FAFBFD',
-                      color: sex === s ? '#4A7CDB' : '#6B7A99',
-                      cursor: 'pointer', transition: 'all 0.2s',
-                    }}>
-                    {s}
-                  </button>
-                ))}
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#3A4260", marginBottom: 8 }}>Sex</label>
+              <div style={{ display: "flex", gap: 12 }}>
+                {["Male", "Female"].map(function(s) {
+                  return (
+                    <button key={s} onClick={function() { setSex(s); }}
+                      style={{
+                        flex: 1, padding: "14px 0", fontSize: 15, fontWeight: 600,
+                        border: sex === s ? "2px solid #4A7CDB" : "2px solid #E0E5EC", borderRadius: 12,
+                        background: sex === s ? "#E8F0FE" : "#FAFBFD",
+                        color: sex === s ? "#4A7CDB" : "#6B7A99", cursor: "pointer"
+                      }}>{s}</button>
+                  );
+                })}
               </div>
             </div>
           </div>
           <div className="bottom-bar">
             <button className="btn-primary" disabled={!canContinue}
-              onClick={() => canContinue && onNext({ name: name.trim(), age, sex })}>
-              Continue
-            </button>
+              onClick={function() { if (canContinue) props.onNext({ name: name.trim(), age: age, sex: sex }); }}>Continue</button>
           </div>
         </div>
       );
     }
 
-    // ─── QUESTION SCREEN ───────────────────────────────────────────────
-    function QuestionScreen({ section, sectionIndex, answers, onAnswer, onNext, onBack, totalSections }) {
-      const scrollRef = useRef(null);
-      const totalItems = section.items.length;
-      const answeredCount = Object.keys(answers).length;
-      const allAnswered = answeredCount === totalItems;
+    /* ===== QUESTIONS ===== */
+    function QuestionScreen(props) {
+      var section = props.section;
+      var sectionIndex = props.sectionIndex;
+      var answers = props.answers;
+      var scrollRef = useRef(null);
+      var totalItems = section.items.length;
+      var answeredCount = Object.keys(answers).length;
+      var allAnswered = answeredCount === totalItems;
 
-      useEffect(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = 0;
-      }, [section.id]);
+      useEffect(function() { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [section.id]);
 
       return (
         <div className="app-shell">
-          {/* Header */}
-          <div style={{ padding: '14px 20px 12px', flexShrink: 0 }}>
-            <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#4A7CDB', fontSize: 14, fontWeight: 600, cursor: 'pointer', padding: 0, marginBottom: 8 }}>← Back</button>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 4 }}>Step {sectionIndex + 2} of 6</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{ padding: "14px 20px 12px", flexShrink: 0 }}>
+            <button onClick={props.onBack} style={{ background: "none", border: "none", color: "#4A7CDB", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 8 }}>&larr; Back</button>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#4A7CDB", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 4 }}>Step {sectionIndex + 2} of 6</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
               <span style={{ fontSize: 26 }}>{section.icon}</span>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A2340', letterSpacing: '-0.3px' }}>{section.title}</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1A2340" }}>{section.title}</h2>
             </div>
-            <p style={{ fontSize: 13, color: '#6B7A99', marginBottom: 10 }}>{section.instruction}</p>
-            <div style={{ height: 6, background: '#EDF0F5', borderRadius: 3, overflow: 'hidden', marginBottom: 4 }}>
-              <div style={{ height: '100%', width: `${(answeredCount / totalItems) * 100}%`, background: 'linear-gradient(90deg, #4A7CDB, #6C9AED)', borderRadius: 3, transition: 'width 0.35s ease' }}></div>
+            <p style={{ fontSize: 13, color: "#6B7A99", marginBottom: 10 }}>{section.instruction}</p>
+            <div style={{ height: 6, background: "#EDF0F5", borderRadius: 3, overflow: "hidden", marginBottom: 4 }}>
+              <div style={{ height: "100%", width: (answeredCount / totalItems * 100) + "%", background: "linear-gradient(90deg, #4A7CDB, #6C9AED)", borderRadius: 3, transition: "width 0.35s ease" }}></div>
             </div>
-            <p style={{ fontSize: 11, color: '#9AA5B8' }}>{answeredCount} of {totalItems} answered</p>
+            <p style={{ fontSize: 11, color: "#9AA5B8" }}>{answeredCount} of {totalItems} answered</p>
           </div>
-
-          {/* Items */}
-          <div ref={scrollRef} className="scroll-area" style={{ padding: '4px 20px 16px' }}>
-            {section.items.map((item, i) => (
-              <div key={i} style={{
-                background: '#FAFBFD', borderRadius: 14, padding: '14px 16px', marginBottom: 10,
-                borderLeft: answers[i] !== undefined ? '4px solid #4A7CDB' : '4px solid #E0E5EC',
-                transition: 'border-color 0.25s',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9AA5B8', letterSpacing: 0.5 }}>Q{i + 1}</span>
-                  {answers[i] !== undefined && <span style={{ fontSize: 10, color: '#4A7CDB', fontWeight: 600 }}>✓</span>}
+          <div ref={scrollRef} className="scroll-area" style={{ padding: "4px 20px 16px" }}>
+            {section.items.map(function(item, i) {
+              return (
+                <div key={i} style={{
+                  background: "#FAFBFD", borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+                  borderLeft: answers[i] !== undefined ? "4px solid #4A7CDB" : "4px solid #E0E5EC"
+                }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#9AA5B8" }}>Q{i + 1}</span>
+                    {answers[i] !== undefined && <span style={{ fontSize: 10, color: "#4A7CDB", fontWeight: 600 }}>&#10003;</span>}
+                  </div>
+                  <p style={{ fontSize: 15, fontWeight: 600, color: "#1A2340", marginBottom: 12, lineHeight: 1.45 }}>{item}</p>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {section.options.map(function(opt, oi) {
+                      var isActive = answers[i] === opt.value;
+                      return (
+                        <button key={oi} onClick={function() { props.onAnswer(section.id, i, opt.value); }}
+                          style={{
+                            padding: "9px 12px", fontSize: 12, fontWeight: 600,
+                            border: isActive ? "2px solid #4A7CDB" : "2px solid #E0E5EC", borderRadius: 9,
+                            background: isActive ? "#4A7CDB" : "#fff", color: isActive ? "#fff" : "#6B7A99",
+                            cursor: "pointer", flex: "1 1 auto", textAlign: "center"
+                          }}>{opt.label}</button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p style={{ fontSize: 15, fontWeight: 600, color: '#1A2340', marginBottom: 12, lineHeight: 1.45 }}>{item}</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {section.options.map((opt, oi) => {
-                    const isActive = answers[i] === opt.value;
-                    return (
-                      <button key={oi} onClick={() => onAnswer(section.id, i, opt.value)}
-                        style={{
-                          padding: '9px 12px', fontSize: 12, fontWeight: 600,
-                          border: isActive ? '2px solid #4A7CDB' : '2px solid #E0E5EC',
-                          borderRadius: 9,
-                          background: isActive ? '#4A7CDB' : '#fff',
-                          color: isActive ? '#fff' : '#6B7A99',
-                          cursor: 'pointer', transition: 'all 0.15s',
-                          flex: '1 1 auto', textAlign: 'center',
-                        }}>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-
           <div className="bottom-bar">
-            <button className="btn-primary" disabled={!allAnswered} onClick={() => allAnswered && onNext()}>
-              {sectionIndex < totalSections - 1 ? 'Next Section →' : 'View Results'}
+            <button className="btn-primary" disabled={!allAnswered} onClick={function() { if (allAnswered) props.onNext(); }}>
+              {sectionIndex < props.totalSections - 1 ? "Next Section \u2192" : "View Results"}
             </button>
           </div>
         </div>
       );
     }
 
-    // ─── RESULTS SCREEN ────────────────────────────────────────────────
-    function ResultsScreen({ childInfo, allAnswers, onRestart }) {
-      const sectionScores = SECTIONS.map(section => {
-        const ans = allAnswers[section.id] || {};
-        const score = section.items.reduce((sum, _, i) => sum + (ans[i] || 0), 0);
-        return { ...section, score };
-      });
-      const totalScore = sectionScores.reduce((sum, s) => sum + s.score, 0);
-      const interp = getInterpretation(totalScore);
-      const maxTotal = 179;
-      const barColors = ['#4A7CDB', '#7C5CBF', '#D4A017', '#E07C3E'];
-      const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    /* ===== RESULTS ===== */
+    function ResultsScreen(props) {
+      var savingState = useState(false); var saving = savingState[0]; var setSaving = savingState[1];
+      var savedState = useState(false); var saved = savedState[0]; var setSaved = savedState[1];
+      var exportingState = useState(false); var exporting = exportingState[0]; var setExporting = exportingState[1];
+
+      var sectionScores = useMemo(function() { return calcScores(props.allAnswers); }, [props.allAnswers]);
+      var totalScore = sectionScores.reduce(function(sum, s) { return sum + s.score; }, 0);
+      var interp = getInterpretation(totalScore);
+      var dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+      var handleSave = function() {
+        if (saved) return;
+        setSaving(true);
+        saveToHistory({ childInfo: props.childInfo, allAnswers: props.allAnswers, totalScore: totalScore, subscaleScores: sectionScores });
+        setTimeout(function() { setSaving(false); setSaved(true); }, 400);
+      };
+
+      var handleExportPDF = function() {
+        setExporting(true);
+        try {
+          var doc = generatePDF(props.childInfo, sectionScores, totalScore, interp, dateStr);
+          if (doc) doc.save("ATEC_" + props.childInfo.name + "_" + new Date().toISOString().slice(0,10) + ".pdf");
+        } catch(e) { console.error("PDF error:", e); alert("PDF export failed."); }
+        setExporting(false);
+      };
 
       return (
         <div className="app-shell">
-          <div className="scroll-area" style={{ padding: '0 20px 20px' }}>
-            <div style={{ textAlign: 'center', paddingTop: 28, marginBottom: 24 }}>
-              <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: '#4A7CDB', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6 }}>Results</p>
-              <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: '#1A2340', marginBottom: 4, letterSpacing: '-0.3px' }}>{childInfo.name}'s ATEC Score</h2>
-              <p className="fade-up fade-up-d1" style={{ color: '#6B7A99', fontSize: 13 }}>{childInfo.age} years old · {childInfo.sex} · {dateStr}</p>
+          <div className="scroll-area" style={{ padding: "0 20px 20px" }}>
+            <div style={{ textAlign: "center", paddingTop: 28, marginBottom: 24 }}>
+              <p className="fade-up" style={{ fontSize: 12, fontWeight: 600, color: "#4A7CDB", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 6 }}>Results</p>
+              <h2 className="fade-up fade-up-d1" style={{ fontSize: 24, fontWeight: 800, color: "#1A2340", marginBottom: 4 }}>{props.childInfo.name}'s ATEC Score</h2>
+              <p className="fade-up fade-up-d1" style={{ color: "#6B7A99", fontSize: 13 }}>{props.childInfo.age} years old &middot; {props.childInfo.sex} &middot; {dateStr}</p>
             </div>
 
-            {/* Score circle */}
-            <div className="scale-in" style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+            <div className="scale-in" style={{ display: "flex", justifyContent: "center", marginBottom: 28 }}>
               <div style={{
-                width: 168, height: 168, borderRadius: '50%',
-                background: interp.bg, border: `4px solid ${interp.color}`,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                boxShadow: `0 8px 32px ${interp.color}22`,
+                width: 168, height: 168, borderRadius: "50%",
+                background: interp.bg, border: "4px solid " + interp.color,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 8px 32px " + interp.color + "22"
               }}>
                 <span style={{ fontSize: 52, fontWeight: 800, color: interp.color, lineHeight: 1 }}>{totalScore}</span>
-                <span style={{ fontSize: 12, color: '#6B7A99', marginTop: 4 }}>out of {maxTotal}</span>
-                <span style={{
-                  fontSize: 13, fontWeight: 700, color: interp.color, marginTop: 6,
-                  padding: '3px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.8)',
-                }}>{interp.level}</span>
+                <span style={{ fontSize: 12, color: "#6B7A99", marginTop: 4 }}>out of 179</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: interp.color, marginTop: 6, padding: "3px 14px", borderRadius: 20, background: "rgba(255,255,255,0.8)" }}>{interp.level}</span>
               </div>
             </div>
 
-            {/* Interpretation */}
-            <div className="fade-up fade-up-d2" style={{
-              background: interp.bg, borderRadius: 16, padding: '18px 20px', marginBottom: 28,
-              borderLeft: `4px solid ${interp.color}`,
-            }}>
-              <p style={{ fontSize: 13, color: '#3A4260', lineHeight: 1.7 }}>{interp.text}</p>
+            <div className="fade-up fade-up-d2" style={{ background: interp.bg, borderRadius: 16, padding: "18px 20px", marginBottom: 28, borderLeft: "4px solid " + interp.color }}>
+              <p style={{ fontSize: 13, color: "#3A4260", lineHeight: 1.7 }}>{interp.text}</p>
             </div>
 
-            {/* Subscale bars */}
-            <h3 className="fade-up fade-up-d2" style={{ fontSize: 16, fontWeight: 700, color: '#1A2340', marginBottom: 18 }}>Subscale Breakdown</h3>
-            {sectionScores.map((s, i) => {
-              const pct = (s.score / s.maxScore) * 100;
+            <div className="fade-up fade-up-d2" style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+              <button onClick={handleSave} disabled={saved}
+                style={{ flex: 1, padding: "14px 0", fontSize: 14, fontWeight: 700, borderRadius: 12, cursor: saved ? "default" : "pointer", border: "none", background: saved ? "#E8F8F0" : "#E8F0FE", color: saved ? "#2D9F6F" : "#4A7CDB" }}>
+                {saved ? "\u2713 Saved" : saving ? "Saving..." : "Save Result"}
+              </button>
+              <button onClick={handleExportPDF} disabled={exporting}
+                style={{ flex: 1, padding: "14px 0", fontSize: 14, fontWeight: 700, borderRadius: 12, border: "none", background: "#F5F0FE", color: "#7C5CBF", cursor: "pointer" }}>
+                {exporting ? "Generating..." : "Export PDF"}
+              </button>
+            </div>
+
+            <h3 className="fade-up fade-up-d2" style={{ fontSize: 16, fontWeight: 700, color: "#1A2340", marginBottom: 18 }}>Subscale Breakdown</h3>
+            {sectionScores.map(function(s, i) {
+              var pct = (s.score / s.maxScore) * 100;
               return (
-                <div key={s.id} className="fade-up" style={{ marginBottom: 18, animationDelay: `${0.15 + i * 0.06}s` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#3A4260' }}>{s.icon} {s.title}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: barColors[i] }}>{s.score} / {s.maxScore}</span>
+                <div key={s.id} className="fade-up" style={{ marginBottom: 18, animationDelay: (0.15 + i * 0.06) + "s" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#3A4260" }}>{s.icon} {s.title}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: BAR_COLORS[i] }}>{s.score} / {s.maxScore}</span>
                   </div>
-                  <div style={{ height: 10, background: '#EDF0F5', borderRadius: 5, overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', width: `${pct}%`, background: barColors[i], borderRadius: 5,
-                      transition: 'width 1s ease', animation: 'fillBar 1s ease both',
-                    }}></div>
+                  <div style={{ height: 10, background: "#EDF0F5", borderRadius: 5, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: pct + "%", background: BAR_COLORS[i], borderRadius: 5, transition: "width 1s ease" }}></div>
                   </div>
                 </div>
               );
             })}
 
-            {/* Score reference */}
-            <div style={{ marginTop: 24, background: '#F5F7FB', borderRadius: 16, padding: '20px' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A2340', marginBottom: 14 }}>Score Reference Guide</h3>
+            <div style={{ marginTop: 24, background: "#F5F7FB", borderRadius: 16, padding: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1A2340", marginBottom: 14 }}>Score Reference Guide</h3>
               {[
-                { range: '0 – 15', label: 'Minimal concerns', color: '#2D9F6F' },
-                { range: '16 – 30', label: 'Mild concerns', color: '#5BA85B' },
-                { range: '31 – 50', label: 'Moderate concerns', color: '#D4A017' },
-                { range: '51 – 103', label: 'Significant concerns', color: '#E07C3E' },
-                { range: '104 – 179', label: 'Severe (90th percentile)', color: '#C0392B' },
-              ].map(r => (
-                <div key={r.range} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: r.color, flexShrink: 0 }}></div>
-                  <span style={{ fontSize: 13, color: '#3A4260' }}><strong>{r.range}:</strong> {r.label}</span>
-                </div>
-              ))}
+                { range: "0 - 15", label: "Minimal concerns", color: "#2D9F6F" },
+                { range: "16 - 30", label: "Mild concerns", color: "#5BA85B" },
+                { range: "31 - 50", label: "Moderate concerns", color: "#D4A017" },
+                { range: "51 - 103", label: "Significant concerns", color: "#E07C3E" },
+                { range: "104 - 179", label: "Severe (90th percentile)", color: "#C0392B" }
+              ].map(function(r) {
+                return (
+                  <div key={r.range} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 3, background: r.color, flexShrink: 0 }}></div>
+                    <span style={{ fontSize: 13, color: "#3A4260" }}><strong>{r.range}:</strong> {r.label}</span>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Disclaimer */}
-            <div style={{
-              marginTop: 20, background: '#FFF8E1', borderRadius: 14, padding: '16px 18px',
-              borderLeft: '4px solid #D4A017',
-            }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#8B6914', marginBottom: 6 }}>⚠️ Important Reminder</p>
-              <p style={{ fontSize: 12, color: '#6B5A1E', lineHeight: 1.65 }}>
-                The ATEC is a treatment evaluation tool — not a diagnostic instrument. These results
-                should be discussed with a qualified healthcare professional. Lower scores indicate
-                fewer concerns; higher scores suggest areas that may benefit from intervention.
-              </p>
+            <div style={{ marginTop: 20, background: "#FFF8E1", borderRadius: 14, padding: "16px 18px", borderLeft: "4px solid #D4A017" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#8B6914", marginBottom: 6 }}>&#9888; Important Reminder</p>
+              <p style={{ fontSize: 12, color: "#6B5A1E", lineHeight: 1.65 }}>The ATEC is a treatment evaluation tool, not a diagnostic instrument. These results should be discussed with a qualified healthcare professional.</p>
             </div>
-
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-              <p style={{ fontSize: 11, color: '#9AA5B8', lineHeight: 1.5 }}>
-                © Autism Research Institute. ATEC by Rimland & Edelson.<br/>
-                For non-commercial use only.
-              </p>
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <p style={{ fontSize: 11, color: "#9AA5B8", lineHeight: 1.5 }}>&copy; Autism Research Institute. ATEC by Rimland &amp; Edelson.<br/>For non-commercial use only.</p>
             </div>
           </div>
 
-          <div className="bottom-bar" style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => window.print()}
-              style={{
-                flex: '0 0 auto', padding: '16px 20px', fontSize: 15, fontWeight: 700,
-                color: '#4A7CDB', background: '#E8F0FE', border: 'none', borderRadius: 14,
-                cursor: 'pointer',
-              }}>
-              🖨
-            </button>
-            <button className="btn-primary" onClick={onRestart}>Start New Assessment</button>
+          <div className="bottom-bar" style={{ display: "flex", gap: 10 }}>
+            <button className="btn-secondary" onClick={props.onViewHistory} style={{ flex: "0 0 auto", padding: "16px 20px", fontSize: 15 }}>&#128200;</button>
+            <button className="btn-primary" onClick={props.onRestart}>New Assessment</button>
           </div>
         </div>
       );
     }
 
-    // ─── MAIN APP ──────────────────────────────────────────────────────
+    /* ===== HISTORY ===== */
+    function HistoryScreen(props) {
+      var histState = useState(loadHistory); var history = histState[0]; var setHistory = histState[1];
+      var metricState = useState("total"); var selectedMetric = metricState[0]; var setSelectedMetric = metricState[1];
+      var confirmState = useState(false); var confirmClear = confirmState[0]; var setConfirmClear = confirmState[1];
+      var expandState = useState(null); var expandedId = expandState[0]; var setExpandedId = expandState[1];
+
+      var handleDelete = function(id) {
+        deleteFromHistory(id);
+        setHistory(loadHistory());
+        if (expandedId === id) setExpandedId(null);
+      };
+
+      var handleClearAll = function() {
+        if (!confirmClear) { setConfirmClear(true); return; }
+        clearAllHistory(); setHistory([]); setConfirmClear(false);
+      };
+
+      var handleExportEntry = function(entry) {
+        var interp = getInterpretation(entry.totalScore);
+        try {
+          var doc = generatePDF(entry.childInfo, entry.subscaleScores, entry.totalScore, interp, formatDate(entry.date));
+          if (doc) doc.save("ATEC_" + entry.childInfo.name + "_" + entry.date.slice(0,10) + ".pdf");
+        } catch(e) { console.error("PDF error:", e); }
+      };
+
+      var sortedHistory = history.slice().sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+
+      var metricOptions = [
+        { id: "total", label: "Total Score", max: 179, color: "#4A7CDB" },
+        { id: "speech", label: "Speech", max: 28, color: "#4A7CDB" },
+        { id: "sociability", label: "Sociability", max: 40, color: "#7C5CBF" },
+        { id: "sensory", label: "Sensory", max: 36, color: "#D4A017" },
+        { id: "health", label: "Health", max: 75, color: "#E07C3E" }
+      ];
+      var currentMetric = metricOptions.find(function(m) { return m.id === selectedMetric; });
+
+      return (
+        <div className="app-shell">
+          <div style={{ padding: "14px 20px 0", flexShrink: 0 }}>
+            <button onClick={props.onBack} style={{ background: "none", border: "none", color: "#4A7CDB", fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 8 }}>&larr; Back</button>
+            <h2 style={{ fontSize: 24, fontWeight: 800, color: "#1A2340", marginBottom: 4 }}>&#128200; Assessment History</h2>
+            <p style={{ fontSize: 13, color: "#6B7A99", marginBottom: 16 }}>
+              {history.length} assessment{history.length !== 1 ? "s" : ""} recorded &middot; Track changes over time
+            </p>
+          </div>
+
+          <div className="scroll-area" style={{ padding: "0 20px 20px" }}>
+            {history.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                <p style={{ fontSize: 48, marginBottom: 16 }}>&#128203;</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#1A2340", marginBottom: 8 }}>No assessments yet</p>
+                <p style={{ fontSize: 13, color: "#6B7A99", lineHeight: 1.5 }}>Complete an ATEC assessment and save the results to start tracking progress over time.</p>
+              </div>
+            ) : (
+              <div>
+                {sortedHistory.length >= 2 && (
+                  <div style={{ background: "#F5F7FB", borderRadius: 16, padding: "18px 16px 10px", marginBottom: 20 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                      {metricOptions.map(function(m) {
+                        return (
+                          <button key={m.id} onClick={function() { setSelectedMetric(m.id); }}
+                            style={{
+                              padding: "6px 12px", fontSize: 11, fontWeight: 600, borderRadius: 8,
+                              border: selectedMetric === m.id ? "2px solid " + m.color : "2px solid #E0E5EC",
+                              background: selectedMetric === m.id ? m.color : "#fff",
+                              color: selectedMetric === m.id ? "#fff" : "#6B7A99",
+                              cursor: "pointer"
+                            }}>{m.label}</button>
+                        );
+                      })}
+                    </div>
+                    <TrendChart history={sortedHistory} metric={currentMetric.id} label={currentMetric.label + " Over Time"} maxVal={currentMetric.max} color={currentMetric.color} />
+                    {(function() {
+                      var first = sortedHistory[0].totalScore;
+                      var last = sortedHistory[sortedHistory.length - 1].totalScore;
+                      var diff = last - first;
+                      if (diff === 0) return null;
+                      var improved = diff < 0;
+                      return (
+                        <div style={{ background: improved ? "#E8F8F0" : "#FDECEB", borderRadius: 10, padding: "10px 14px", marginBottom: 6 }}>
+                          <p style={{ fontSize: 12, color: improved ? "#2D7A5A" : "#9B2C20", fontWeight: 600 }}>
+                            {improved ? "\u25BC" : "\u25B2"} Total score has {improved ? "decreased" : "increased"} by <strong>{Math.abs(diff)} points</strong> from first to latest assessment.
+                            {improved ? " Lower scores indicate improvement." : " Higher scores suggest increased concerns."}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1A2340", marginBottom: 12 }}>All Assessments</h3>
+                {history.slice().reverse().map(function(entry) {
+                  var interp = getInterpretation(entry.totalScore);
+                  var isExpanded = expandedId === entry.id;
+                  return (
+                    <div key={entry.id} style={{ background: "#FAFBFD", borderRadius: 14, padding: "14px 16px", marginBottom: 10, borderLeft: "4px solid " + interp.color }}>
+                      <div onClick={function() { setExpandedId(isExpanded ? null : entry.id); }} style={{ cursor: "pointer" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1A2340" }}>{entry.childInfo.name}</span>
+                          <span style={{ fontSize: 12, color: "#9AA5B8" }}>{formatDate(entry.date)}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 22, fontWeight: 800, color: interp.color }}>{entry.totalScore}</span>
+                          <span style={{ fontSize: 11, color: "#9AA5B8" }}>/ 179</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: interp.color, padding: "2px 10px", borderRadius: 12, background: interp.bg }}>{interp.level}</span>
+                          <span style={{ marginLeft: "auto", fontSize: 12, color: "#9AA5B8" }}>{isExpanded ? "\u25B2" : "\u25BC"}</span>
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #EDF0F5" }}>
+                          <p style={{ fontSize: 12, color: "#6B7A99", marginBottom: 8 }}>Age: {entry.childInfo.age} yrs &middot; Sex: {entry.childInfo.sex}</p>
+                          {entry.subscaleScores && entry.subscaleScores.map(function(s, i) {
+                            return (
+                              <div key={s.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, color: "#5A6680" }}>{s.icon} {s.shortTitle}</span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: BAR_COLORS[i] }}>{s.score}/{s.maxScore}</span>
+                              </div>
+                            );
+                          })}
+                          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                            <button onClick={function() { handleExportEntry(entry); }}
+                              style={{ flex: 1, padding: 10, fontSize: 12, fontWeight: 600, borderRadius: 8, border: "none", background: "#F5F0FE", color: "#7C5CBF", cursor: "pointer" }}>Export PDF</button>
+                            <button onClick={function() { handleDelete(entry.id); }}
+                              style={{ flex: 1, padding: 10, fontSize: 12, fontWeight: 600, borderRadius: 8, border: "none", background: "#FDECEB", color: "#C0392B", cursor: "pointer" }}>Delete</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {history.length > 0 && (
+                  <div style={{ marginTop: 20, textAlign: "center" }}>
+                    <button onClick={handleClearAll}
+                      style={{ padding: "10px 24px", fontSize: 12, fontWeight: 600, borderRadius: 10, border: "none", background: confirmClear ? "#C0392B" : "#F5F7FB", color: confirmClear ? "#fff" : "#9AA5B8", cursor: "pointer" }}>
+                      {confirmClear ? "Tap again to confirm deletion" : "Clear All History"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="bottom-bar">
+            <button className="btn-primary" onClick={props.onNewAssessment}>New Assessment</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ===== MAIN APP ===== */
     function App() {
-      const [screen, setScreen] = useState('welcome');
-      const [childInfo, setChildInfo] = useState({});
-      const [allAnswers, setAllAnswers] = useState({});
+      var screenState = useState("welcome"); var screen = screenState[0]; var setScreen = screenState[1];
+      var childState = useState({}); var childInfo = childState[0]; var setChildInfo = childState[1];
+      var answersState = useState({}); var allAnswers = answersState[0]; var setAllAnswers = answersState[1];
+      var countState = useState(loadHistory().length); var historyCount = countState[0]; var setHistoryCount = countState[1];
 
-      const handleAnswer = useCallback((sectionId, itemIndex, value) => {
-        setAllAnswers(prev => ({
-          ...prev,
-          [sectionId]: { ...(prev[sectionId] || {}), [itemIndex]: value },
-        }));
-      }, []);
+      useEffect(function() { setHistoryCount(loadHistory().length); }, [screen]);
 
-      const sectionIndex = screen.startsWith('section-') ? parseInt(screen.split('-')[1]) : -1;
+      var handleAnswer = function(sectionId, itemIndex, value) {
+        setAllAnswers(function(prev) {
+          var updated = Object.assign({}, prev);
+          updated[sectionId] = Object.assign({}, updated[sectionId] || {});
+          updated[sectionId][itemIndex] = value;
+          return updated;
+        });
+      };
 
-      if (screen === 'welcome') return <WelcomeScreen onStart={() => setScreen('info')} />;
+      var resetAssessment = function() {
+        setChildInfo({}); setAllAnswers({}); setScreen("info");
+      };
 
-      if (screen === 'info') return (
-        <ChildInfoScreen
-          onBack={() => setScreen('welcome')}
-          onNext={info => { setChildInfo(info); setScreen('section-0'); }}
-        />
+      var sectionIndex = screen.indexOf("section-") === 0 ? parseInt(screen.split("-")[1]) : -1;
+
+      var lastChildInfo = useMemo(function() {
+        var h = loadHistory();
+        return h.length > 0 ? h[h.length - 1].childInfo : null;
+      }, [screen]);
+
+      if (screen === "welcome") return (
+        <WelcomeScreen onStart={function() { setScreen("info"); }} onViewHistory={function() { setScreen("history"); }} historyCount={historyCount} />
       );
 
-      if (screen === 'results') return (
+      if (screen === "info") return (
+        <ChildInfoScreen onBack={function() { setScreen("welcome"); }}
+          onNext={function(info) { setChildInfo(info); setScreen("section-0"); }}
+          defaultInfo={lastChildInfo} />
+      );
+
+      if (screen === "history") return (
+        <HistoryScreen onBack={function() { setScreen("welcome"); }} onNewAssessment={resetAssessment} />
+      );
+
+      if (screen === "results") return (
         <ResultsScreen childInfo={childInfo} allAnswers={allAnswers}
-          onRestart={() => { setScreen('welcome'); setChildInfo({}); setAllAnswers({}); }} />
+          onRestart={resetAssessment} onViewHistory={function() { setScreen("history"); }} />
       );
 
       if (sectionIndex >= 0) {
-        const section = SECTIONS[sectionIndex];
+        var section = SECTIONS[sectionIndex];
         return (
           <QuestionScreen
             section={section} sectionIndex={sectionIndex}
             answers={allAnswers[section.id] || {}}
             onAnswer={handleAnswer}
             totalSections={SECTIONS.length}
-            onBack={() => sectionIndex === 0 ? setScreen('info') : setScreen(`section-${sectionIndex - 1}`)}
-            onNext={() => sectionIndex < SECTIONS.length - 1 ? setScreen(`section-${sectionIndex + 1}`) : setScreen('results')}
+            onBack={function() { setScreen(sectionIndex === 0 ? "info" : "section-" + (sectionIndex - 1)); }}
+            onNext={function() { setScreen(sectionIndex < SECTIONS.length - 1 ? "section-" + (sectionIndex + 1) : "results"); }}
           />
         );
       }
-
       return null;
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>
