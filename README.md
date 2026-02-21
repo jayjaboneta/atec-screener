@@ -14,28 +14,21 @@ A free, open-source web app for the **Autism Treatment Evaluation Checklist (ATE
 
 The ATEC is **not a diagnostic tool**. It is designed to measure treatment progress over time. Results should always be discussed with a qualified healthcare professional. This app does not diagnose autism spectrum disorder.
 
-## Deploy
+## About the ATEC
 
-This is a single-file static web app. No build step required.
+About the Autism Treatment Evaluation Checklist: A major obstacle in autism research has been the lack of a valid means of measuring the effectiveness of various treatments. Over the years, researchers have published hundreds of studies attempting to evaluate different biomedical and psycho-educational interventions intended to benefit autistic children. Much of this research produced inconclusive or, worse, misleading results, because there are no useful tests or scales designed to measure treatment effectiveness. Lacking such a scale, researchers resorted to using scales such as the Childhood Autism Rating Scale (CARS), the Gilliam Autism Rating Scale (GARS), or the Autism Behavior Checklist (ABC), all of which were designed to diagnose autism- to tell whether or not a child is autistic--and not to measure treatment effectiveness.
 
-### Vercel (recommended)
+Bernard Rimland and Stephen M. Edelson of the Autism Research Institute developed The Autism Treatment Evaluation Checklist (ATEC) to fill this need.
 
-1. Fork or clone this repo
-2. Connect to [Vercel](https://vercel.com)
-3. Set the **Output Directory** to `public`
-4. Deploy — done
+The ATEC is a one-page form designed to be completed by parents, teachers, or caretakers. It consists of 4 subtests: I. Speech/Language Communication (14 items); II. Sociability (20 items); III. Sensory/ Cognitive Awareness (18 items); and IV. Health/Physical/Behavior (25 items).
 
-### Other platforms
+### Using the ATEC
 
-Upload `public/index.html` to any static hosting provider (Netlify, GitHub Pages, etc.).
+The ATEC is not a diagnostic checklist. It basically provides several subscale scores as well as a total score to be used for comparison at a later date. Basically, the lower the score, the fewer the problems.
 
-For **GitHub Pages**: rename `public/index.html` to `index.html` in the root, or configure Pages to serve from the `public` folder.
+Thus, if a person scores a '20' on one day, and then a '15' two weeks later, then the individual showed improvement. In contrast, if the score was '30', then the individual's behavior worsened.
 
-## Tech Stack
-
-- React 18 (CDN)
-- Vanilla CSS (no frameworks)
-- Single HTML file, zero dependencies
+Many parents and teachers use the ATEC to monitor how well the child is doing over time. In addition, researchers have used the ATEC to document improvement following an intervention by comparing the baseline ATEC scores with the post-treatment ATEC scores.
 
 ## ATEC Scoring
 
